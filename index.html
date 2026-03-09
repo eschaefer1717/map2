@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yale, Revised</title>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: Georgia, serif;
+        background: white;
+        color: #111;
+      }
+
+      h1 {
+        max-width: 1000px;
+        margin: 3rem auto 0.5rem auto;
+        padding: 0 1rem;
+        font-size: 2.8rem;
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        max-width: 1000px;
+        margin: 0 auto 2.5rem auto;
+        padding: 0 1rem;
+        font-size: 1.1rem;
+        color: #666;
+      }
+
+      #scrolly {
+        position: relative;
+        padding: 1rem;
+      }
+
+      .scrolly-container {
+        display: flex;
+        gap: 3rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .scrolly-overlay {
+        width: 34%;
+        min-width: 290px;
+        padding-top: 18vh;
+        transition: opacity 0.6s ease-in-out;
+      }
+
+      /* Keep overlay height for scrolling, just hide it visually */
+      .scrolly-container.fullscreen-mode .scrolly-overlay {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .sticky-thing {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        width: 66%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+        transition: width 0.8s ease-in-out;
+      }
+
+      /* In fullscreen, pin image over the viewport */
+      .scrolly-container.fullscreen-mode .sticky-thing {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 20;
+        background: white;
+      }
+
+      .photo-frame {
+        width: min(62vw, 900px);
+        max-width: 900px;
+        padding: 1rem;
+        position: relative;
+        overflow: hidden;
+        transition:
+          width 1.8s ease-in-out,
+          max-width 1.8s ease-in-out,
+          height 1.8s ease-in-out,
+          padding 1.8s ease-in-out;
+      }
+
+      .photo-frame.frame-zoomed {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100vh;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Wrapper so base and overlay share the same box — prevents orientation/size shift */
+      .photo-frame-inner {
+        position: relative;
+        display: block;
+        width: 100%;
+      }
+
+      .photo-frame-inner img:first-child {
+        width: 100%;
+        height: auto;
+        display: block;
+        opacity: 1;
+        transition:
+          opacity 0.8s ease-in-out,
+          transform 2.4s ease-in-out;
+        transform-origin: center center;
+        transform: scale(1) translate(0, 0);
+      }
+
+      /* Overlay image: same box as base so artboard stays fixed. No transition so opacity tracks scroll 1:1. */
+      .photo-frame-inner .map-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: top left;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 2;
+      }
+      .photo-frame.map-overlay-mode .photo-frame-inner .map-overlay {
+        display: block;
+      }
+      .photo-frame-inner .map-overlay.overlay-fade-in {
+        transition: opacity 0.6s ease-in-out;
+      }
+
+      .zoomed {
+        transform: scale(1.18) translate(0%, 0%);
+      }
+
+      .zoom-overlay-text {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 1.2s ease-in-out;
+        pointer-events: none;
+      }
+
+      .zoom-overlay-text .text-box {
+        background: rgba(255, 255, 255, 0.85);
+        color: #111;
+        padding: 2rem 3rem;
+        border-radius: 4px;
+        font-size: 2.2rem;
+        line-height: 1.3;
+        max-width: 80%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .step {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+
+      /* Make the fullscreen linger steps longer */
+      #step7,
+      #step8,
+      #step9 {
+        min-height: 140vh;
+      }
+      /* 1900s section: first step with image, then 6 steps with fixed text and 6 images (3 pairs of regular + highlight) */
+      #step10 {
+        min-height: 100vh;
+      }
+      .step-1900s-fixed-text {
+        position: relative;
+        min-height: 600vh;
+      }
+      .step-1900s-fixed-text .fixed-text-inner {
+        position: sticky;
+        top: 18vh;
+        padding-bottom: 2rem;
+      }
+      .step-1900s-fixed-text .fixed-text-inner p {
+        margin: 0;
+        font-size: 1.35rem;
+        line-height: 1.5;
+      }
+      .step-1900s-fixed-text .step {
+        min-height: 80vh;
+      }
+      .step-4-images {
+        position: relative;
+        min-height: 320vh;
+      }
+      .step-4-images .fixed-text-inner {
+        position: sticky;
+        top: 18vh;
+        padding-bottom: 2rem;
+      }
+      .step-4-images .fixed-text-inner p {
+        margin: 0;
+        font-size: 1.35rem;
+        line-height: 1.5;
+      }
+      .step-4-images .step {
+        min-height: 80vh;
+      }
+      #step17 {
+        min-height: 100vh;
+      }
+      /* Scroll-linked overlay steps: extended height so opacity can animate with scroll */
+      #step19 {
+        min-height: 150vh;
+      }
+      /* Versailles overlay: longer scroll for a gentler, less jolting fade */
+      #step21 {
+        min-height: 280vh;
+      }
+      #step39 {
+        min-height: 200vh;
+      }
+
+      .step p {
+        margin: 0;
+        font-size: 1.35rem;
+        line-height: 1.5;
+      }
+
+      .after-intro {
+        max-width: 760px;
+        margin: 4rem auto 6rem auto;
+        padding: 0 1rem;
+        font-size: 1.15rem;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 900px) {
+        .scrolly-container {
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .scrolly-overlay,
+        .sticky-thing {
+          width: 100%;
+        }
+
+        .scrolly-overlay {
+          min-width: 0;
+          padding-top: 0;
+          order: 2;
+        }
+
+        .sticky-thing {
+          position: relative;
+          height: auto;
+          order: 1;
+          overflow: visible;
+        }
+
+        .scrolly-container.fullscreen-mode .sticky-thing {
+          position: fixed;
+          inset: 0;
+          width: 100vw;
+          height: 100vh;
+          z-index: 20;
+          background: white;
+        }
+
+        .photo-frame {
+          width: 92vw;
+          max-width: none;
+          margin: 0 auto;
+        }
+
+        .step {
+          margin-bottom: 5rem;
+        }
+
+        h1 {
+          font-size: 2.2rem;
+        }
+
+        .step p {
+          font-size: 1.2rem;
+        }
+
+        .zoom-overlay-text .text-box {
+          font-size: 1.35rem;
+          padding: 1.5rem;
+        }
+
+        .zoomed {
+          transform: scale(1.1) translate(0%, 0%);
+        }
+      }
+    </style>
+
+    <script src="https://unpkg.com/intersection-observer@0.5.1/intersection-observer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/scrollama/3.0.4/scrollama.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.3.0/d3.min.js"></script>
+  </head>
+
+  <body>
+    <div style="height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; background: white;">
+      <img src="images/title.png" alt="Title" style="width: 100%; height: 100%; object-fit: contain;" />
+    </div>
+
+    <section id="scrolly">
+      <div class="scrolly-container">
+        <div class="scrolly-overlay">
+          <div class="step" id="step1">
+            <p>On a glacial Tuesday in February, I went into the archive looking for old maps of Yale.</p>
+          </div>
+
+          <div class="step" id="step2">
+            <p>What I found instead were different imagined versions of Yale:</p>
+          </div>
+
+          <div class="step" id="step3">
+            <p>architectural plans, campus visions, proposed blueprints.</p>
+          </div>
+
+          <div class="step" id="step4">
+            <p>Some built,</p>
+          </div>
+
+          <div class="step" id="step5">
+            <p>some abandoned,</p>
+          </div>
+
+          <div class="step" id="step6">
+            <p>all revealing what kind of university Yale wanted to become.</p>
+          </div>
+
+          <div class="step" id="step7">
+            <p></p>
+          </div>
+
+          <div class="step" id="step8">
+            <p></p>
+          </div>
+
+          <div class="step" id="step9">
+            <p></p>
+          </div>
+
+          <div class="step" id="step10">
+            <p>Welcome to twentieth-century New Haven.</p>
+          </div>
+
+          <div class="step-1900s-fixed-text">
+            <div class="fixed-text-inner">
+              <p>Yale's experiencing a lot of changes.</p>
+            </div>
+            <div class="step" id="step11" data-step="1900s"></div>
+            <div class="step" id="step12" data-step="1900s"></div>
+            <div class="step" id="step13" data-step="1900s"></div>
+            <div class="step" id="step14" data-step="1900s"></div>
+            <div class="step" id="step15" data-step="1900s"></div>
+            <div class="step" id="step16" data-step="1900s"></div>
+          </div>
+
+    
+          <div class="step" id="step17">
+            <p>Along with these institutional changes, the university's campus was also a subject of change and redesign.</p>
+          </div>
+
+          <div class="step" id="step18">
+            <p>In 1919, John Russell Pope proposed a new master plan for Yale.</p>
+          </div>
+
+          
+          <div class="step" id="step19" data-overlay-phase="pope-highlight"></div>
+
+          <div class="step" id="step20">
+            <p>Look familiar?</p>
+          </div>
+
+          
+          <div class="step" id="step21" data-overlay-phase="versailles-overlay">
+            <p>New Haven... or Versailles?</p>
+          </div>
+
+          <div class="step" id="step22">
+            <p>Pope favored symmetry, interior gardens, and a formal center axis,</p>
+          </div>
+
+          <div class="step" id="step23">
+            <p>remniscent of European courts of the past.</p>
+          </div>
+        </div>
+
+        <div class="sticky-thing">
+          <div class="photo-frame" id="photoFrame">
+            <div class="photo-frame-inner">
+              <img
+                id="scrollyPhoto"
+                src="images/intro01.png"
+                alt="A stack of Yale maps building one by one"
+              />
+              <img
+                id="scrollyPhotoOverlay"
+                class="map-overlay"
+                src=""
+                alt=""
+                role="presentation"
+              />
+            </div>
+            <div class="zoom-overlay-text" id="zoomOverlayText">
+              <div class="text-box">
+                These are not just maps of Yale.<br><br>
+                They are allegories of Yale's intellectual and cultural aspirations.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="after-intro" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <p>
+        Pope's plan suggests that a modern campus did not have to look "modern." For Yale, the future could be inherited from the prestige of European tradition.
+      </p>
+    </div>
+
+    <div class="after-intro" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+      <p>Ultimately, Yale went with James Gamble Rogers' master plan, which still preserved many of Pope's Collegiate Gothic ideas.</p>
+      <br>
+      <p>Rogers went on to construct Sterling Memorial Library in 1927, which was met with backlash from the growing Modernist movement of the time. Many students complained the cathedral-like structure was overly historicist and lavish.</p>
+    </div>
+
+    <section id="scrolly2" style="position: relative; padding: 1rem;">
+      <div class="scrolly-container">
+        <div class="scrolly-overlay">
+          <div class="step-4-images">
+            <div class="fixed-text-inner">
+              <p>By the 1960s, Yale turned towards such Modernism with the construction of Morse and Stiles, departing from the Collegiate Gothic style.</p>
+            </div>
+            <div class="step" id="step26" data-step="new-beat"></div>
+            <div class="step" id="step27" data-step="new-beat"></div>
+            <div class="step" id="step28" data-step="new-beat"></div>
+            <div class="step" id="step29" data-step="new-beat"></div>
+          </div>
+
+          <div class="step" id="step30">
+            <p>Morse and Stiles were Brutalist in design, rejecting right angles in favor of irregular corners and raw concrete.</p>
+          </div>
+          <div class="step" id="step31">
+            <p>Their single-room layouts emphasized individualism.</p>
+          </div>
+        </div>
+
+        <div class="sticky-thing">
+          <div class="photo-frame" id="photoFrame2">
+            <div class="photo-frame-inner">
+              <img
+                id="scrollyPhoto2"
+                src="images/mspwghq.png"
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="after-intro">
+      <p>Morse and Stiles imagined a Yale less tied to tradition and more willing to stand out.</p>
+    </div>
+
+    <section id="scrolly3" style="position: relative; padding: 1rem;">
+      <div class="scrolly-container">
+        <div class="scrolly-overlay">
+          <div class="step-4-images">
+            <div class="fixed-text-inner">
+              <p>By the early 1970s, Yale released plans for another pair of residential colleges.</p>
+            </div>
+            <div class="step" id="step32"></div>
+            <div class="step" id="step33"></div>
+            <div class="step" id="step34"></div>
+            <div class="step" id="step35"></div>
+          </div>
+          <div class="step" id="step36">
+            <p>These unnamed colleges were to be built at the Temple/Grove/Whitney triangular intersection.</p>
+          </div>
+          <div class="step" id="step37">
+            <p>Like Morse and Stiles, these colleges continued Yale's Brutalist turn.</p>
+          </div>
+          <div class="step" id="step38">
+            <div>
+              <p>These colleges were never built due to a confluence of financial, political, and preservationist interests. </p>
+              <br>
+              <br>
+              <p>When the new colleges finally came, they looked very different.</p>
+            </div>
+          </div>
+          <div class="step fade-to-white-step" id="step39">
+            <p></p>
+          </div>
+        </div>
+
+        <div class="sticky-thing">
+          <div class="photo-frame" id="photoFrame3">
+            <div class="photo-frame-inner">
+              <img
+                id="scrollyPhoto3"
+                src="images/1960map1.png"
+                alt=""
+              />
+              <div id="whiteOverlay" style="position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 3;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="after-intro" style="min-height: 60vh; display: flex; align-items: center; justify-content: center;">
+      <p style="font-size: 3rem; font-weight: bold; text-align: center; margin: 0;">50 years pass.</p>
+    </div>
+
+    <section id="scrolly4" style="position: relative; padding: 1rem;">
+      <div class="scrolly-container">
+        <div class="scrolly-overlay">
+          <div class="step" id="step40">
+            <p>In 2017, Yale opened Pauli Murray and Benjamin Franklin, its first new residential colleges in decades.</p>
+          </div>
+          <div class="step" id="step41">
+            <p></p>
+          </div>
+          <div class="step" id="step42">
+            <p>They were built at the northern edge of campus, near Prospect Street.</p>
+          </div>
+        </div>
+
+        <div class="sticky-thing">
+          <div class="photo-frame" id="photoFrame4">
+            <div class="photo-frame-inner">
+              <img
+                id="scrollyPhoto4"
+                src="images/pm1.png"
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="after-intro" style="max-width: 1000px; margin: 6rem auto;">
+      <video 
+        src="images/video.mov" 
+        style="width: 100%; height: auto; display: block;" 
+        autoplay 
+        muted 
+        loop 
+        playsinline
+      ></video>
+      <p style="text-align: center; margin-top: 1rem; color: #666;">
+        Construction timelapse.
+      </p>
+    </div>
+
+
+    <section id="scrolly5" style="position: relative; padding: 1rem;">
+      <div class="scrolly-container">
+        <div class="scrolly-overlay">
+          <div class="step" id="step43">
+            <p>The colleges possess slate roofs, limestone and brick facades, and stained-glass windows.</p>
+          </div>
+          <div class="step" id="step44">
+            <p>A gothic return.</p>
+          </div>
+          <div class="step" id="step45">
+            <div>
+              <p style="font-style: italic;">"I think I'm leaving a legacy that I had good enough sense to climb on the shoulders of what went before, and to add to the legacy, not to go off in a new tangent."</p>
+              <p style="margin-top: 1rem; font-size: 1rem; color: #555;">— lead architect Robert A.M. Stern</p>
+            </div>
+          </div>
+          <div class="step" id="step46">
+            <p>This is the Yale we know today.</p>
+          </div>
+          <div class="step" id="step47">
+            <p>It is worth remembering the earlier visions of Yale, both realized and unrealized, that helped shape this campus.</p>
+          </div>
+          <div class="step" id="step48">
+            <p>Yale first looked to Europe for tradition and prestige.</p>
+          </div>
+          <div class="step" id="step49">
+            <p>Then it briefly tried to imagine itself differently.</p>
+          </div>
+          <div class="step" id="step50">
+            <p>Brutalism offered a more modern, defiant Yale.</p>
+          </div>
+          <div class="step" id="step51">
+            <p>But when Yale built again, it returned to traditional ideals.</p>
+          </div>
+          <div class="step" id="step52">
+            <p>The campus preserves these shifts in how the university saw itself.</p>
+          </div>
+        </div>
+
+        <div class="sticky-thing">
+          <div class="photo-frame" id="photoFrame5">
+            <div class="photo-frame-inner">
+              <img
+                id="scrollyPhoto5"
+                src="images/pm4.png"
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="after-intro" style="min-height: 40vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+      <p style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">By Elizabeth Schaefer.</p>
+      <p style="font-size: 1.1rem; color: #666;">
+        <a href="https://docs.google.com/document/d/1pddON70KPzorv6KxunvEQD-eDpPPFQiF3JoAkeAGIVk/edit?usp=sharing" target="_blank" style="color: inherit; text-decoration: underline;">sources</a>
+      </p>
+    </div>
+
+    <script>
+      let currentSrc = "images/intro01.png";
+
+      function hideOverlayText() {
+        d3.select("#zoomOverlayText").style("opacity", 0);
+      }
+
+      function showOverlayText() {
+        d3.select("#zoomOverlayText").style("opacity", 1);
+      }
+
+      function resetZoom() {
+        d3.select("#scrollyPhoto").classed("zoomed", false);
+      }
+
+      function applyZoom() {
+        d3.select("#scrollyPhoto").classed("zoomed", true);
+      }
+
+      function resetFrameZoom() {
+        d3.select(".photo-frame").classed("frame-zoomed", false);
+      }
+
+      function applyFrameZoom() {
+        d3.select(".photo-frame").classed("frame-zoomed", true);
+      }
+
+      function hideImage() {
+        d3.select("#scrollyPhoto").style("opacity", 0);
+      }
+
+      function showImage() {
+        d3.select("#scrollyPhoto").style("opacity", 1);
+      }
+
+      function enterFullscreenMode() {
+        d3.select(".scrolly-container").classed("fullscreen-mode", true);
+      }
+
+      function exitFullscreenMode() {
+        d3.select(".scrolly-container").classed("fullscreen-mode", false);
+      }
+
+      function crossfadeImage(imgId, newSrc, currentSrcRef, onSrcUpdate) {
+        if (newSrc === currentSrcRef) return;
+        onSrcUpdate(newSrc);
+        
+        const img = document.getElementById(imgId);
+        if (!img) return;
+
+        img.src = newSrc;
+      }
+
+      function fadeToImage(newSrc) {
+        crossfadeImage("scrollyPhoto", newSrc, currentSrc, (src) => { currentSrc = src; });
+      }
+
+      let activeStepId = "";
+      // Pope / Versailles: base + overlay with scroll-linked opacity
+      function enterMapOverlayMode(baseSrc, overlaySrc) {
+        d3.select("#photoFrame").classed("map-overlay-mode", true);
+        d3.select("#scrollyPhoto").attr("src", baseSrc);
+        currentSrc = baseSrc;
+        const overlay = d3.select("#scrollyPhotoOverlay");
+        overlay.attr("src", overlaySrc).style("opacity", 0);
+      }
+
+      function setOverlayOpacity(value) {
+        d3.select("#scrollyPhotoOverlay").style("opacity", value);
+      }
+
+      function exitMapOverlayMode() {
+        d3.select("#photoFrame").classed("map-overlay-mode", false);
+        d3.select("#scrollyPhotoOverlay").attr("src", "").style("opacity", 0);
+      }
+
+      function preloadImages(srcs) {
+        srcs.forEach(function (src) {
+          const img = new Image();
+          img.src = src;
+        });
+      }
+
+      d3.select("#step1").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro01.png");
+      });
+
+      d3.select("#step2").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro02.png");
+      });
+
+      d3.select("#step3").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro03.png");
+      });
+
+      d3.select("#step4").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro04.png");
+      });
+
+      d3.select("#step5").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro05.png");
+      });
+
+      d3.select("#step6").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro06.png");
+      });
+
+      d3.select("#step7").on("stepin", function () {
+        enterFullscreenMode();
+        fadeToImage("images/zoom02.png");
+        applyFrameZoom();
+        applyZoom();
+        setTimeout(showOverlayText, 350);
+      });
+
+      d3.select("#step8").on("stepin", function () {
+        enterFullscreenMode();
+        fadeToImage("images/zoom02.png");
+        applyFrameZoom();
+        applyZoom();
+        showOverlayText();
+      });
+
+      d3.select("#step9").on("stepin", function () {
+        enterFullscreenMode();
+        fadeToImage("images/zoom02.png");
+        applyFrameZoom();
+        applyZoom();
+        hideOverlayText();
+      });
+
+      // 1900s at Yale: intro text + one image
+      d3.select("#step10").on("stepin", function () {
+        exitFullscreenMode();
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s_intro.png");
+      });
+
+      // 1900s: fixed text, 6 images fade (3 sets of regular → highlighted)
+      d3.select("#step11").on("stepin", function () {
+        exitFullscreenMode();
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s01.png");
+      });
+
+      d3.select("#step12").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s01_highlight.png");
+      });
+
+      d3.select("#step13").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s02.png");
+      });
+
+      d3.select("#step14").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s02_highlight.png");
+      });
+
+      d3.select("#step15").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s03.png");
+      });
+
+      d3.select("#step16").on("stepin", function () {
+        exitFullscreenMode();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/1900s03_highlight.png");
+      });
+
+      // First beat: Pope plan then Versailles (scroll-linked overlays)
+      d3.select("#step17").on("stepin", function () {
+        exitFullscreenMode();
+        exitMapOverlayMode();
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/intro.png");
+      });
+
+      d3.select("#step18").on("stepin", function () {
+        exitFullscreenMode();
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        enterMapOverlayMode("images/pope1.png", "images/pope1_highlight.png");
+        setOverlayOpacity(0);
+        preloadImages(["images/versailles1.png", "images/versailles1_highlight.png"]);
+      });
+
+      d3.select("#step19").on("stepin", function () {
+        exitFullscreenMode();
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        enterMapOverlayMode("images/pope1.png", "images/pope1_highlight.png");
+        setOverlayOpacity(0);
+      });
+
+      d3.select("#step20").on("stepin", function () {
+        enterMapOverlayMode("images/pope1.png", "images/pope1_highlight.png");
+        setOverlayOpacity(1);
+      });
+
+      d3.select("#step21").on("stepin", function () {
+        enterMapOverlayMode("images/pope1_highlight.png", "images/versailles1.png");
+        setOverlayOpacity(0);
+      });
+
+      d3.select("#step22").on("stepin", function () {
+        exitFullscreenMode();
+        exitMapOverlayMode();
+        d3.select("#scrollyPhotoOverlay").classed("overlay-fade-in", false);
+        showImage();
+        hideOverlayText();
+        resetZoom();
+        resetFrameZoom();
+        fadeToImage("images/sbs.png");
+        preloadImages(["images/sbs_highlight.png"]);
+      });
+
+      d3.select("#step23").on("stepin", function () {
+        const overlay = d3.select("#scrollyPhotoOverlay");
+        overlay.classed("overlay-fade-in", true);
+        enterMapOverlayMode("images/sbs.png", "images/sbs_highlight.png");
+        setOverlayOpacity(0);
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            setOverlayOpacity(1);
+          });
+        });
+      });
+
+      // New beat: mspwghq sequence
+      let currentSrc2 = "images/mspwghq.png";
+
+      function fadeToImage2(newSrc) {
+        crossfadeImage("scrollyPhoto2", newSrc, currentSrc2, (src) => { currentSrc2 = src; });
+      }
+
+      d3.select("#step26").on("stepin", function () {
+        fadeToImage2("images/mspwghq.png");
+      });
+
+      d3.select("#step27").on("stepin", function () {
+        fadeToImage2("images/mspwghq_anno1.png");
+      });
+
+      d3.select("#step28").on("stepin", function () {
+        fadeToImage2("images/mspwghq_anno2.png");
+      });
+
+      d3.select("#step29").on("stepin", function () {
+        fadeToImage2("images/mspwghq_anno2.png.png");
+      });
+
+      d3.select("#step30").on("stepin", function () {
+        fadeToImage2("images/ms1.png");
+      });
+
+      d3.select("#step31").on("stepin", function () {
+        fadeToImage2("images/ms2.png");
+      });
+
+      // 1960map sequence
+      let currentSrc3 = "images/1960map1.png";
+
+      function fadeToImage3(newSrc) {
+        crossfadeImage("scrollyPhoto3", newSrc, currentSrc3, (src) => { currentSrc3 = src; });
+      }
+
+      d3.select("#step32").on("stepin", function () {
+        fadeToImage3("images/1960map1.png");
+      });
+
+      d3.select("#step33").on("stepin", function () {
+        fadeToImage3("images/1960map2.png");
+      });
+
+      d3.select("#step34").on("stepin", function () {
+        fadeToImage3("images/1960map3.png");
+      });
+
+      d3.select("#step35").on("stepin", function () {
+        fadeToImage3("images/1960map4.png");
+      });
+
+      d3.select("#step36").on("stepin", function () {
+        fadeToImage3("images/1960map5.png");
+        d3.select("#whiteOverlay").style("opacity", 0);
+      });
+
+      d3.select("#step37").on("stepin", function () {
+        fadeToImage3("images/new1.png");
+        d3.select("#whiteOverlay").style("opacity", 0);
+      });
+
+      d3.select("#step38").on("stepin", function () {
+        fadeToImage3("images/new2.png");
+        d3.select("#whiteOverlay").style("opacity", 0);
+      });
+
+      d3.select("#step39").on("stepin", function () {
+        fadeToImage3("images/new2.png"); // Image stays new2
+        // Opacity of whiteOverlay handled by scroll
+      });
+
+      // 50 years pass sequence
+      let currentSrc4 = "images/pm1.png";
+
+      function fadeToImage4(newSrc) {
+        crossfadeImage("scrollyPhoto4", newSrc, currentSrc4, (src) => { currentSrc4 = src; });
+      }
+
+      d3.select("#step40").on("stepin", function () {
+        fadeToImage4("images/pm1.png");
+      });
+
+      d3.select("#step41").on("stepin", function () {
+        fadeToImage4("images/pm2.png");
+      });
+
+      d3.select("#step42").on("stepin", function () {
+        fadeToImage4("images/pm3.png");
+      });
+
+      // Post-video sequence (pm4, pm6)
+      let currentSrc5 = "images/pm4.png";
+
+      function fadeToImage5(newSrc) {
+        crossfadeImage("scrollyPhoto5", newSrc, currentSrc5, (src) => { currentSrc5 = src; });
+      }
+
+      d3.select("#step43").on("stepin", function () {
+        fadeToImage5("images/pm4.png");
+      });
+
+      d3.select("#step44").on("stepin", function () {
+        fadeToImage5("images/pm5.png");
+      });
+
+      d3.select("#step45").on("stepin", function () {
+        fadeToImage5("images/pm6.png");
+      });
+
+      d3.select("#step46").on("stepin", function () {
+        fadeToImage5("images/final.png");
+      });
+
+      d3.select("#step47").on("stepin", function () {
+        fadeToImage5("images/final.png");
+      });
+
+      d3.select("#step48").on("stepin", function () {
+        fadeToImage5("images/intro06.png");
+      });
+
+      d3.select("#step49").on("stepin", function () {
+        fadeToImage5("images/intro05.png");
+      });
+
+      d3.select("#step50").on("stepin", function () {
+        fadeToImage5("images/intro04.png");
+      });
+
+      d3.select("#step51").on("stepin", function () {
+        fadeToImage5("images/intro02.png");
+      });
+
+      d3.select("#step52").on("stepin", function () {
+        fadeToImage5("images/intro01.png");
+      });
+
+      // Scroll-linked overlay opacity for steps 19, 21 only
+      function updateOverlayOpacityFromScroll() {
+        const frame = document.getElementById("photoFrame");
+        if (!frame || !frame.classList.contains("map-overlay-mode")) return;
+
+        const windowHeight = window.innerHeight;
+
+        if (activeStepId === "step19" || activeStepId === "step21") {
+          const el = document.getElementById(activeStepId);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            // Start fading in as the element scrolls up past the top of the window
+            const progress = Math.max(0, Math.min(1, -rect.top / (rect.height - windowHeight)));
+            setOverlayOpacity(progress);
+          }
+        } else if (activeStepId === "step20" || activeStepId === "step22") {
+          setOverlayOpacity(1);
+        } else if (activeStepId === "step18") {
+          setOverlayOpacity(0);
+        }
+      }
+
+      function updateWhiteOverlayFromScroll() {
+        const step39 = document.getElementById("step39");
+        if (!step39) return;
+        
+        const rect = step39.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const overlay = document.getElementById("whiteOverlay");
+        
+        if (rect.top <= windowHeight && rect.bottom >= 0) {
+          if (rect.top > 0) {
+            overlay.style.opacity = 0;
+          } else {
+            const progress = Math.max(0, Math.min(1, -rect.top / (rect.height - windowHeight)));
+            overlay.style.opacity = progress;
+          }
+        } else if (rect.top > windowHeight) {
+          overlay.style.opacity = 0;
+        } else if (rect.bottom < 0) {
+          overlay.style.opacity = 1;
+        }
+      }
+
+      let overlayRaf = null;
+      window.addEventListener("scroll", function () {
+        if (overlayRaf) cancelAnimationFrame(overlayRaf);
+        overlayRaf = requestAnimationFrame(function () {
+          updateOverlayOpacityFromScroll();
+          updateWhiteOverlayFromScroll();
+          overlayRaf = null;
+        });
+      }, { passive: true });
+
+      const scroller = scrollama();
+
+      scroller
+        .setup({
+          step: ".step",
+          offset: 0.55,
+          debug: false
+        })
+        .onStepEnter(function ({ element, direction }) {
+          activeStepId = element.id;
+          const event = new CustomEvent("stepin", {
+            detail: { direction: direction }
+          });
+          element.dispatchEvent(event);
+        });
+
+      window.addEventListener("resize", () => scroller.resize());
+    </script>
+  </body>
+</html>
